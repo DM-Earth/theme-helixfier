@@ -1,0 +1,133 @@
+use std::{
+    collections::HashMap,
+    io::{stdin, stdout},
+};
+
+use serde::{Deserialize, Serialize};
+
+mod rules;
+
+fn main() {
+    let code_theme: CodeTheme = serde_json::from_reader(stdin()).unwrap();
+    let mut hx_theme = HelixTheme {
+        colors: HashMap::new(),
+    };
+    rules::write(&code_theme, &mut hx_theme);
+    let mut buf = toml::ser::Buffer::new();
+    hx_theme
+        .serialize(toml::ser::Serializer::pretty(&mut buf))
+        .unwrap();
+    let mut stdout = stdout();
+    use std::io::Write;
+    write!(stdout, "{}", buf).unwrap();
+}
+
+#[derive(Serialize)]
+struct HelixTheme {
+    #[serde(flatten)]
+    colors: HashMap<&'static str, helix_color::Entry>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CodeTheme {
+    colors: HashMap<Box<str>, Option<Box<str>>>,
+    token_colors: Box<[token_color::TokenColor]>,
+}
+
+mod helix_color {
+    use std::collections::HashSet;
+
+    use serde::Serialize;
+
+    #[derive(Serialize, Default, Clone)]
+    pub struct Entry {
+        // permitted to be `None` in some special places, e.g. `ui.text.focus`
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub fg: Option<Box<str>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub bg: Option<Box<str>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub underline: Option<Underline>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub modifiers: Option<HashSet<Modifier>>,
+    }
+
+    #[derive(Serialize, Clone)]
+    pub struct Underline {
+        pub color: Box<str>,
+        pub style: UnderlineStyle,
+    }
+
+    #[derive(Serialize, PartialEq, Eq, Hash, Clone, Copy)]
+    #[serde(rename_all = "snake_case")]
+    #[allow(unused)]
+    pub enum UnderlineStyle {
+        Line,
+        Curl,
+        Dashed,
+        Dotted,
+        DoubleLine,
+    }
+
+    #[derive(Serialize, PartialEq, Eq, Hash, Clone, Copy)]
+    #[serde(rename_all = "snake_case")]
+    #[allow(unused)]
+    pub enum Modifier {
+        Bold,
+        Dim,
+        Italic,
+        #[deprecated]
+        Underlined,
+        SlowBlink,
+        RapidBlink,
+        Reversed,
+        Hidden,
+        CrossedOut,
+    }
+}
+
+mod token_color {
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct TokenColor {
+        #[serde(default)]
+        pub settings: Settings,
+        // None for scopeless global setting
+        #[serde(default)]
+        pub scope: Option<Scope>,
+        // name is eliminated
+    }
+
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    pub enum Scope {
+        Single(Box<str>),
+        Multiple(Box<[Box<str>]>),
+    }
+
+    #[derive(Deserialize, Default, Clone)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Settings {
+        #[serde(default)]
+        pub foreground: Option<Box<str>>,
+        #[serde(default)]
+        pub font_style: FontStyle,
+    }
+
+    #[derive(Deserialize, Default, Clone, Copy)]
+    #[serde(rename_all = "camelCase")]
+    pub enum FontStyle {
+        Italic,
+        Bold,
+        Strikethrough,
+        Underline,
+
+        #[default]
+        None,
+        #[serde(other)]
+        Reset,
+    }
+}
