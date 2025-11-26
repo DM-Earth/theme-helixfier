@@ -36,7 +36,9 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             "editorRuler.foreground" => &[fg("ui.virtual.ruler")],
             "editorWhitespace.foreground" => &[fg("ui.virtual.whitespace")],
             // it should be foreground.
-            "editorIndentGuide.background" => &[fg("ui.virtual.intent-guide")],
+            "editorIndentGuide.background" | "editorIndentGuide.background1" => {
+                &[fg("ui.virtual.indent-guide")]
+            }
             "editorInlayHint.background" => &[bg("ui.virtual.inlay-hint")],
             "editorInlayHint.foreground" => &[fg("ui.virtual.inlay-hint")],
             "editorInlayHint.parameterBackground" => &[bg("ui.virtual.inlay-hint.parameter")],
@@ -62,13 +64,13 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             "editorError.background" => &[bg("diagnostic.error")],
             "editorInfo.background" => &[bg("diagnostic.info"), bg("diagnostic")],
             "editorHint.background" => &[bg("diagnostic.hint")],
-            "editorGutter.addedBackground" => &[bg("diff.plus.gutter")],
-            "editorGutter.deletedBackground" => &[bg("diff.minus.gutter")],
-            "editorGutter.modifiedBackground" => &[bg("diff.delta.gutter")],
-            "editorGutter.addedSecondaryBackground" => &[bg("diff.plus")],
-            "editorGutter.deletedSecondaryBackground" => &[bg("diff.minus")],
-            "editorGutter.modifiedSecondaryBackground" => &[bg("diff.delta")],
-            "merge.incomingContentBackground" => &[bg("diff.delta.conflict")],
+            "editorGutter.addedBackground" => &[fg("diff.plus.gutter")],
+            "editorGutter.deletedBackground" => &[fg("diff.minus.gutter")],
+            "editorGutter.modifiedBackground" => &[fg("diff.delta.gutter")],
+            "editorGutter.addedSecondaryBackground" => &[fg("diff.plus")],
+            "editorGutter.deletedSecondaryBackground" => &[fg("diff.minus")],
+            "editorGutter.modifiedSecondaryBackground" => &[fg("diff.delta")],
+            "merge.incomingContentBackground" => &[fg("diff.delta.conflict")],
 
             _ => &[],
         };
@@ -226,17 +228,6 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         }
     }
 
-    for e in dst.colors.values_mut() {
-        if e.fg.is_none() {
-            e.fg = fallback.foreground.clone();
-        };
-        if let Some(u) = &mut e.underline
-            && u.color.is_empty()
-        {
-            u.color = fallback.foreground.clone().unwrap_or_default();
-        }
-    }
-
     // patch entity for simple themes
     const FALLBACK_ENTITIES: &[&str] = &["type", "attribute", "function", "label", "tag"];
     for &t in FALLBACK_ENTITIES {
@@ -289,6 +280,56 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             .filter(|(k, e)| e.fg.is_none() && matches!(**k, "ui.cursor" | "ui.cursor.primary"))
         {
             e.fg = Some(fg.clone());
+        }
+    }
+
+    // patch diagnostic, following vsc behavior
+    const DIAGNOSTIC_NAMES: &[&str] = &[
+        "diagnostic",
+        "diagnostic.hint",
+        "diagnostic.info",
+        "diagnostic.warning",
+        "diagnostic.error",
+        "diagnostic.unnecessary",
+        "diagnostic.deprecated",
+    ];
+
+    for &n in DIAGNOSTIC_NAMES {
+        if let Some(e) = dst.colors.get_mut(n)
+            && e.underline.is_none()
+            && let Some(fg) = e.fg.clone()
+        {
+            e.underline = Some(crate::helix_color::Underline {
+                color: fg,
+                style: UnderlineStyle::Curl,
+            })
+        }
+    }
+
+    // deprecated patch
+    dst.colors
+        .entry("diagnostic.deprecated")
+        .or_default()
+        .modifiers
+        .get_or_insert_default()
+        .insert(crate::helix_color::Modifier::CrossedOut);
+    // unused patch
+    dst.colors
+        .entry("diagnostic.unnecessary")
+        .or_default()
+        .modifiers
+        .get_or_insert_default()
+        .insert(crate::helix_color::Modifier::Dim);
+
+    // final fallback
+    for e in dst.colors.values_mut() {
+        if e.fg.is_none() {
+            e.fg = fallback.foreground.clone();
+        };
+        if let Some(u) = &mut e.underline
+            && u.color.is_empty()
+        {
+            u.color = fallback.foreground.clone().unwrap_or_default();
         }
     }
 }
