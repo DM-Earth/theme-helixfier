@@ -112,12 +112,12 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
                 "entity.other.attribute-name" | "meta.attribute.name" | "meta.attribute" => {
                     &["attribute"]
                 }
-                "entity.name.type" => &["type"],
+                "entity.name.type" => &["type", "constructor"],
                 "entity.name.type.parameter" => &["type.parameter"],
                 "entity.name.type.numeric" | "support.type.primitive" => &["type.builtin"],
                 "entity.name.type.enum" => &["type.enum"],
                 "variable.other.enummember" => &["type.enum.variant"],
-                "variable.other.constant" => &["constant"],
+                "constant" => &["constant"],
                 "constant.language" => &["constant.builtin"],
                 "constant.language.boolean" | "constant.language.bool" => {
                     &["constant.builtin.boolean"]
@@ -229,7 +229,14 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
     }
 
     // patch entity for simple themes
-    const FALLBACK_ENTITIES: &[&str] = &["type", "attribute", "function", "label", "tag"];
+    const FALLBACK_ENTITIES: &[&str] = &[
+        "type",
+        "attribute",
+        "function",
+        "label",
+        "tag",
+        "constructor",
+    ];
     for &t in FALLBACK_ENTITIES {
         if !dst.colors.contains_key(t) {
             dst.colors.insert(
