@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use hex_color::HexColor;
+
 use crate::{CodeTheme, HelixTheme, helix_color::UnderlineStyle};
 
 pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
@@ -68,8 +70,6 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             "minimap.infoHighlight" => &[fg("info"), fg("hint")],
             _ => &[],
         };
-
-        let a = 1;
 
         for m in mapped {
             let d = dst
@@ -338,6 +338,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         .modifiers
         .get_or_insert_default()
         .insert(crate::helix_color::Modifier::CrossedOut);
+
     // unused patch
     dst.colors
         .entry("diagnostic.unnecessary")
@@ -346,8 +347,15 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         .get_or_insert_default()
         .insert(crate::helix_color::Modifier::Dim);
 
-    // final fallback
+    let fallback_bg = dst
+        .colors
+        .get("ui.background")
+        .and_then(|e| e.bg.as_deref())
+        .and_then(|bg| HexColor::parse(bg).ok())
+        .filter(|color| color.a == u8::MAX);
+
     for e in dst.colors.values_mut() {
+        // final fallback
         if e.fg.is_none() {
             e.fg = fallback.foreground.clone();
         };
@@ -356,7 +364,40 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         {
             u.color = fallback.foreground.clone().unwrap_or_default();
         }
+
+        // alpha handling
+        if let Some(bg) = e.bg.as_deref().and_then(|bg| HexColor::parse(bg).ok())
+            && bg.a != u8::MAX
+            && let Some(fbg) = fallback_bg
+        {
+            e.bg = Some(
+                mask_color(bg, fbg, bg.a)
+                    .display_rgb()
+                    .to_string()
+                    .into_boxed_str(),
+            );
+        }
+        if let Some(fg) = e.fg.as_deref().and_then(|fg| HexColor::parse(fg).ok())
+            && fg.a != u8::MAX
+            && let Some(bg) =
+                e.bg.as_deref()
+                    .and_then(|bg| HexColor::parse(bg).ok())
+                    .or(fallback_bg)
+        {
+            e.fg = Some(
+                mask_color(fg, bg, fg.a)
+                    .display_rgb()
+                    .to_string()
+                    .into_boxed_str(),
+            );
+        }
     }
+}
+
+fn mask_color(fg: HexColor, bg: HexColor, alpha: u8) -> HexColor {
+    let fgc = alpha as f32 / u8::MAX as f32;
+    let bgc = 1.0 - fgc;
+    fg.scale(fgc).wrapping_add(bg.scale(bgc)).with_a(u8::MAX)
 }
 
 struct Mapped {
