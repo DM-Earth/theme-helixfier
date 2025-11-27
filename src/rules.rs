@@ -163,6 +163,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
                 "entity.name.function" => &["function"],
                 "entity.name.function.preprocessor" => &["function.special", "function.macro"],
                 "entity.name.tag" => &["tag"],
+                "entity.name.namespace" => &["namespace"],
                 "markup.heading" => &["markup.heading"],
                 "heading.1" => &["markup.heading.1"],
                 "heading.2" => &["markup.heading.2"],
