@@ -95,9 +95,8 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             crate::token_color::Scope::Single(s) => std::slice::from_ref(s),
             crate::token_color::Scope::Multiple(items) => &**items,
         };
-        for scope in scopes {
+        for mut scope in scopes.iter().flat_map(|s| s.split(',')).map(str::trim) {
             const SUFFIXES: &[&str] = &[".rust", ".java", ".groovy", ".css", ".html", ".markdown"];
-            let mut scope = &**scope;
             for s in SUFFIXES {
                 if let Some(s) = scope.strip_suffix(s) {
                     scope = s;
