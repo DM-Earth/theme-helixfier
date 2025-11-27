@@ -137,7 +137,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
                 "comment.block.documentation" => &["comment.block.documentation"],
                 "variable" | "entity.name.variable" | "support.variable" => &["variable"],
                 "variable.parameter" => &["variable.parameter"],
-                "variable.language" => &["variable.builtin"],
+                "variable.language" => &["variable.builtin", "type.builtin"],
                 "variable.other" => &["variable.other"],
                 "variable.other.property" => &["variable.other.member"],
                 "entity.other.attribute-name.class" => &["label"],
