@@ -56,14 +56,6 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             "editor.symbolHighlightBackground" => &[bg("ui.highlight")],
             "editor.stackFrameHighlightBackground" => &[bg("ui.highlight.frameline")],
             "editor.lineHighlightBackground" => &[bg("ui.cursorline.primary")],
-            "editorWarning.foreground" => &[fg("warning"), fg("diagnostic.warning")],
-            "editorError.foreground" => &[fg("error"), fg("diagnostic.error")],
-            "editorInfo.foreground" => &[fg("info"), fg("diagnostic.info"), fg("diagnostic")],
-            "editorHint.foreground" => &[fg("hint"), fg("diagnostic.hint")],
-            "editorWarning.background" => &[bg("diagnostic.warning")],
-            "editorError.background" => &[bg("diagnostic.error")],
-            "editorInfo.background" => &[bg("diagnostic.info"), bg("diagnostic")],
-            "editorHint.background" => &[bg("diagnostic.hint")],
             "editorGutter.addedBackground" => &[fg("diff.plus.gutter")],
             "editorGutter.deletedBackground" => &[fg("diff.minus.gutter")],
             "editorGutter.modifiedBackground" => &[fg("diff.delta.gutter")],
@@ -71,9 +63,13 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             "editorGutter.deletedSecondaryBackground" => &[fg("diff.minus")],
             "editorGutter.modifiedSecondaryBackground" => &[fg("diff.delta")],
             "merge.incomingContentBackground" => &[fg("diff.delta.conflict")],
-
+            "minimap.errorHighlight" => &[fg("error")],
+            "minimap.warningHighlight" => &[fg("warning")],
+            "minimap.infoHighlight" => &[fg("info"), fg("hint")],
             _ => &[],
         };
+
+        let a = 1;
 
         for m in mapped {
             let d = dst
@@ -100,7 +96,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             crate::token_color::Scope::Multiple(items) => &**items,
         };
         for scope in scopes {
-            const SUFFIXES: &[&str] = &["rust", "java", "groovy", "css", "html", "markdown"];
+            const SUFFIXES: &[&str] = &[".rust", ".java", ".groovy", ".css", ".html", ".markdown"];
             let mut scope = &**scope;
             for s in SUFFIXES {
                 if let Some(s) = scope.strip_suffix(s) {
@@ -132,7 +128,9 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
                 "constant.numeric.decimal" | "constant.numeric.hex" | "constant.numeric.bin" => {
                     &["constant.numeric.integer"]
                 }
-                "string" | "string.quoted.double" => &["string"],
+                "string" | "string.quoted.double" | "string.quoted" => &["string"],
+                "string.regexp" => &["string.regexp"],
+                "string.other.link" => &["string.special.url"],
                 "comment" => &["comment"],
                 "comment.line.double-slash" => &["comment.line"],
                 "documentation" | "	comment.line.documentation" => &["comment.line.documentation"],
@@ -188,6 +186,9 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
                 "markup.raw" => &["markup.raw"],
                 "markup.inline.raw" => &["markup.raw.inline"],
                 "markup.block.raw" => &["markup.raw.block"],
+                "token.info-token" => &["diagnostic.info", "diagnostic"],
+                "token.warn-token" => &["diagnostic.warning"],
+                "token.error-token" => &["diagnostic.error"],
                 _ => &[],
             };
 
@@ -294,10 +295,34 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         "diagnostic.deprecated",
     ];
 
+    let warning_squiggle = src
+        .colors
+        .get("editorWarning.foreground")
+        .and_then(Option::as_ref);
+    let error_squiggle = src
+        .colors
+        .get("editorError.foreground")
+        .and_then(Option::as_ref);
+    let info_squiggle = src
+        .colors
+        .get("editorInfo.foreground")
+        .and_then(Option::as_ref);
+    let hint_squiggle = src
+        .colors
+        .get("editorHint.foreground")
+        .and_then(Option::as_ref);
+
     for &n in DIAGNOSTIC_NAMES {
+        let squiggle = match n {
+            "diagnostic.hint" => hint_squiggle,
+            "diagnostic.info" => info_squiggle,
+            "diagnostic.warning" => warning_squiggle,
+            "diagnositc.error" => error_squiggle,
+            _ => None,
+        };
         if let Some(e) = dst.colors.get_mut(n)
             && e.underline.is_none()
-            && let Some(fg) = e.fg.clone()
+            && let Some(fg) = e.fg.as_ref().or(squiggle).cloned()
         {
             e.underline = Some(crate::helix_color::Underline {
                 color: fg,
