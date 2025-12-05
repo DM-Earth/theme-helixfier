@@ -11,6 +11,7 @@ fn main() {
     let code_theme: CodeTheme = serde_json::from_reader(stdin()).unwrap();
     let mut hx_theme = HelixTheme {
         colors: HashMap::new(),
+        rainbow: vec![],
     };
     rules::write(&code_theme, &mut hx_theme);
     let mut buf = toml::ser::Buffer::new();
@@ -26,6 +27,7 @@ fn main() {
 struct HelixTheme {
     #[serde(flatten)]
     colors: HashMap<&'static str, helix_color::Entry>,
+    rainbow: Vec<helix_color::Entry>,
 }
 
 #[derive(Deserialize)]

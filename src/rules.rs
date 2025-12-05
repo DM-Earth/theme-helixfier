@@ -72,10 +72,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         };
 
         for m in mapped {
-            let d = dst
-                .colors
-                .entry(m.key)
-                .or_insert_with(|| Default::default());
+            let d = dst.colors.entry(m.key).or_default();
             match m.ty {
                 MappedTy::Foreground => d.fg = Some(color.clone()),
                 MappedTy::Background => d.bg = Some(color.clone()),
@@ -93,7 +90,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         };
         let scopes: &[Box<str>] = match scopes {
             crate::token_color::Scope::Single(s) => std::slice::from_ref(s),
-            crate::token_color::Scope::Multiple(items) => &**items,
+            crate::token_color::Scope::Multiple(items) => items,
         };
         for mut scope in scopes.iter().flat_map(|s| s.split(',')).map(str::trim) {
             const SUFFIXES: &[&str] = &[".rust", ".css", ".html", ".markdown"];
@@ -193,7 +190,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             };
 
             for &m in mapped {
-                let d = dst.colors.entry(m).or_insert_with(|| Default::default());
+                let d = dst.colors.entry(m).or_default();
                 if let Some(fg) = tc.settings.foreground.as_deref() {
                     d.fg = Some(fg.to_owned().into_boxed_str());
                 }
@@ -272,6 +269,23 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             );
         }
     }
+
+    // rainbow brackets
+    dst.rainbow = (1..=6u32)
+        .filter_map(|n| {
+            src.colors
+                .get(&*format!("editorBracketHighlight.foreground{n}"))
+                .and_then(Option::as_ref)
+        })
+        // some vsc theme may contain #0000000 color codes. myth
+        .filter(|color| HexColor::parse(color).is_ok_and(|c| c.a != 0))
+        .map(|color| crate::helix_color::Entry {
+            fg: Some(color.clone()),
+            bg: None,
+            underline: None,
+            modifiers: None,
+        })
+        .collect();
 
     // patch stauts line
     if !dst.colors.contains_key("ui.statusline")
@@ -361,7 +375,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         .and_then(|bg| HexColor::parse(bg).ok())
         .filter(|color| color.a == u8::MAX);
 
-    for e in dst.colors.values_mut() {
+    for e in dst.colors.values_mut().chain(dst.rainbow.iter_mut()) {
         // final fallback
         if e.fg.is_none() {
             e.fg = fallback.foreground.clone();
