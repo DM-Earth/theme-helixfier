@@ -7,7 +7,45 @@ use serde::{Deserialize, Serialize};
 
 mod rules;
 
+const HELP: &str =
+    "Convert VSCode color themes into Helix themes.\nPipe the file into this through stdin.\n";
+
 fn main() {
+    let raw_args = clap_lex::RawArgs::new(std::env::args_os());
+    let mut argc = raw_args.cursor();
+    #[allow(clippy::never_loop)]
+    while let Some(arg) = raw_args.next(&mut argc) {
+        if arg.is_empty() {
+            continue;
+        }
+        if let Some(args) = arg.to_short() {
+            for c in args.filter_map(Result::ok) {
+                match c {
+                    'h' => {
+                        print!("{HELP}");
+                        return;
+                    }
+                    _ => {
+                        eprintln!("unknown argument '-{c}'.");
+                        return;
+                    }
+                }
+            }
+        }
+        if let Some((Ok(a), _)) = arg.to_long() {
+            match a {
+                "help" => {
+                    print!("{HELP}");
+                    return;
+                }
+                _ => {
+                    eprintln!("unknown argument '--{a}'.");
+                    return;
+                }
+            }
+        }
+    }
+
     let code_theme: CodeTheme = serde_json::from_reader(stdin()).unwrap();
     let mut hx_theme = HelixTheme {
         colors: HashMap::new(),
