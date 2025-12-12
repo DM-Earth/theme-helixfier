@@ -52,13 +52,14 @@ fn main() {
         rainbow: vec![],
     };
     rules::write(&code_theme, &mut hx_theme);
-    let mut buf = toml::ser::Buffer::new();
-    hx_theme
-        .serialize(toml::ser::Serializer::pretty(&mut buf))
-        .unwrap();
     let mut stdout = stdout();
     use std::io::Write;
-    write!(stdout, "{}", buf).unwrap();
+    write!(
+        stdout,
+        "{}",
+        toml::to_string_pretty(&hx_theme).expect("failed to serialize into TOML")
+    )
+    .unwrap();
 }
 
 #[derive(Serialize)]
