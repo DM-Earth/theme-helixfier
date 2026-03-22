@@ -1,6 +1,6 @@
 [package]
 name = "theme-helixfier"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 description = "Convert vscode theme into helix theme, all automated!"
 repository = "https://codeberg.org/DM-Earth/theme-helixfier"
