@@ -61,9 +61,6 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
             "editorGutter.addedBackground" => &[fg("diff.plus.gutter")],
             "editorGutter.deletedBackground" => &[fg("diff.minus.gutter")],
             "editorGutter.modifiedBackground" => &[fg("diff.delta.gutter")],
-            "editorGutter.addedSecondaryBackground" => &[fg("diff.plus")],
-            "editorGutter.deletedSecondaryBackground" => &[fg("diff.minus")],
-            "editorGutter.modifiedSecondaryBackground" => &[fg("diff.delta")],
             "merge.incomingContentBackground" => &[fg("diff.delta.conflict")],
             "minimap.errorHighlight" => &[fg("error")],
             "minimap.warningHighlight" => &[fg("warning")],
@@ -183,15 +180,29 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
                 "markup.raw" => &["markup.raw"],
                 "markup.inline.raw" => &["markup.raw.inline"],
                 "markup.block.raw" => &["markup.raw.block"],
+                "markup.inserted" | "markup.inserted.diff" => &["diff.plus"],
+                "markup.deleted" | "markup.deleted.diff" => &["diff.minus"],
+                "markup.changed" | "markup.changed.diff" => &["diff.delta"],
                 "token.info-token" => &["diagnostic.info", "diagnostic"],
                 "token.warn-token" => &["diagnostic.warning"],
                 "token.error-token" => &["diagnostic.error"],
                 _ => &[],
             };
 
+            const LOW_PRIORITIED: &[&str] = &[
+                // would be replace by .diff variants
+                "markup.changed",
+                "markup.deleted",
+                "markup.inserted",
+            ];
+
             for &m in mapped {
-                let d = dst.colors.entry(m).or_default();
-                if let Some(fg) = tc.settings.foreground.as_deref() {
+                let entry = dst.colors.entry(m);
+                let vacant = matches!(entry, std::collections::hash_map::Entry::Vacant(_));
+                let d = entry.or_default();
+                if let Some(fg) = tc.settings.foreground.as_deref()
+                    && (vacant || !LOW_PRIORITIED.contains(&scope))
+                {
                     d.fg = Some(fg.to_owned().into_boxed_str());
                 }
                 match tc.settings.font_style {
