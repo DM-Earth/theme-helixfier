@@ -202,7 +202,7 @@ dependencies = [
 
 [[package]]
 name = "theme-helixfier"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "clap_lex",
  "hex_color",
