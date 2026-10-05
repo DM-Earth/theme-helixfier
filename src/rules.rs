@@ -379,6 +379,22 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
         .get_or_insert_default()
         .insert(crate::helix_color::Modifier::Dim);
 
+    // patch selection so it don't make itself unvisible with cursorline
+    if let Some(cl) = dst
+        .colors
+        .get("ui.cursorline.primary")
+        .and_then(|s| s.bg.as_deref())
+        && let Ok(cl) = HexColor::parse(cl)
+        && let Some(sel) = dst
+            .colors
+            .get_mut("ui.selection")
+            .and_then(|s| s.bg.as_mut())
+        && HexColor::parse(sel).is_ok_and(|orig| orig == cl)
+        && let Some(Some(wh)) = src.colors.get("editor.wordHighlightBackground")
+    {
+        *sel = wh.clone()
+    }
+
     let fallback_bg = dst
         .colors
         .get("ui.background")
@@ -429,7 +445,7 @@ pub fn write(src: &CodeTheme, dst: &mut HelixTheme) {
 fn mask_color(fg: HexColor, bg: HexColor, alpha: u8) -> HexColor {
     let fgc = alpha as f32 / u8::MAX as f32;
     let bgc = 1.0 - fgc;
-    fg.scale(fgc).wrapping_add(bg.scale(bgc)).with_a(u8::MAX)
+    fg.scale(fgc).saturating_add(bg.scale(bgc)).with_a(u8::MAX)
 }
 
 struct Mapped {
